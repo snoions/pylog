@@ -3,10 +3,8 @@ import numpy as np
 
 def cursed(pyclass):
     def cursed_decorator(func):
-        def wrapper(*args, **kwargs):
-            return func(*args, **kwargs)
         curse(pyclass, func.__name__, func)
-        return wrapper
+        return func
     return cursed_decorator
 
 @cursed(range)
@@ -19,6 +17,10 @@ def unroll(self, factor=None):
 
 @cursed(range)
 def partition(self, factor=None):
+    return self
+
+@cursed(np.ndarray)
+def array_partition(self, factor=None, dim=None):
     return self
 
 def pragma(str):

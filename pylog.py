@@ -15,6 +15,7 @@ from config import TARGET_BASE, WORKSPACE
 from nodes import plnode_link_parent
 from analyzer import PLAnalyzer, PLTester, ast_link_parent
 from typer import PLTyper
+from affineTyper import PLAffineTyper
 from optimizer import PLOptimizer
 from codegen import PLCodeGenerator
 from sysgen import PLSysGen
@@ -160,6 +161,7 @@ def pylog_compile(src, arg_info, backend, board, path,
     tester = PLTester()
     analyzer = PLAnalyzer(debug=debug)
     typer = PLTyper(arg_info, debug=debug)
+    affineTyper = PLAffineTyper(arg_info, debug=debug)
     chaining_rewriter = PLChainingRewriter(debug=debug)
     optimizer = PLOptimizer(backend=backend, debug=debug)
     codegen = PLCodeGenerator(arg_info,
@@ -188,6 +190,17 @@ def pylog_compile(src, arg_info, backend, board, path,
         print(pylog_ir)
         print('\n')
 
+    affineTyper.visit(pylog_ir)
+
+    if debug:
+        print('\n')
+        print("pylog IR after affine typer")
+        print(pylog_ir)
+        print("res_ctx:", affineTyper.res_ctx)
+        print('\n')
+        # exit()
+
+    
     # transform loop transformation and insert pragmas
     optimizer.opt(pylog_ir)
 

@@ -39,7 +39,7 @@ def iter_fields(node):
     if isinstance(node, list):
         for item in node:
             if isinstance(item, PLNode):
-                yield item
+                yield None, item
 
     for field in node._fields:
         try:
@@ -201,13 +201,22 @@ class PLNode:
             o = PLConst(o)
         return PLBinOp('%', self, o)
 
+    def __eq__(self, o):
+        return type(self) == type(o) and \
+            all((p1 == p2 for p1, p2 in zip(iter_fields(self), iter_fields(o))))
+
     def set_codegened(self):
         tmp = self.codegened
         self.codegened = True
         return tmp
 
+class PLScopeNode(PLNode):
+    '''nodes that contain a list of statements as body'''
+    def __init__(self, body, ast_node=None, config=None):
+        PLNode.__init__(self, ast_node, config)
+        self.body = body
 
-# class TypeNode(PLNode):
+        # class TypeNode(PLNode):
 #     def __init__(self, type_val, ast_node=None, config=None):
 #         PLNode.__init__(self, ast_node, config)
 #         self._fields = ['type_val']
@@ -460,12 +469,11 @@ class PLAssign(PLNode):
         self.value.parent = self
 
 
-class PLIf(PLNode):
+class PLIf(PLScopeNode):
     def __init__(self, test, body, orelse, ast_node=None, config=None):
-        PLNode.__init__(self, ast_node, config)
+        PLScopeNode.__init__(self, body, ast_node, config)
         self._fields = ['test', 'body', 'orelse']
         self.test = test
-        self.body = body
         self.orelse = orelse
 
 
@@ -522,28 +530,26 @@ class PLIterDom(PLNode):
                 # TODO: need to generate separate ArrayDecl before current stmt
 
 
-class PLFor(PLNode):
+class PLFor(PLScopeNode):
     def __init__(self, target, iter_dom, body, orelse, source=None, \
                  ast_node=None, config=None):
-        PLNode.__init__(self, ast_node, config)
+        PLScopeNode.__init__(self, body, ast_node, config)
         self._fields = ['target', 'iter_dom', 'body', 'orelse']
         self.target = target
         self.iter_dom = iter_dom
-        self.body = body
         self.orelse = orelse
         self.source = source # the source op lowered to for (string)
 
 
-class PLWhile(PLNode):
+class PLWhile(PLScopeNode):
     def __init__(self, test, body, orelse, ast_node=None, config=None):
-        PLNode.__init__(self, ast_node, config)
+        PLNode.__init__(self, body, ast_node, config)
         self._fields = ['test', 'body', 'orelse']
         self.test = test
-        self.body = body
         self.orelse = orelse
 
 
-class PLFunctionDef(PLNode):
+class PLFunctionDef(PLScopeNode):
     '''
         name: string
         args: list of arguments (PLNodes)
@@ -553,11 +559,10 @@ class PLFunctionDef(PLNode):
 
     def __init__(self, name, args, body, decorator_list, pl_top=False,
                  ast_node=None, config=None, annotations={}):
-        PLNode.__init__(self, ast_node, config)
+        PLScopeNode.__init__(self, body, ast_node, config)
         self._fields = ['name', 'args', 'body', 'decorator_list','annotations']
         self.name = name
         self.args = args
-        self.body = body
         self.decorator_list = decorator_list
         self.iter_vars = []
         self.pl_top = pl_top
